@@ -20,18 +20,21 @@ export function NodeInspector() {
     updateNodeData 
   } = useStore();
   
-  const selectedNode = nodes?.find((n: any) => n.id === selectedNodeId);
+  const selectedNode = nodes?.find((n) => n.id === selectedNodeId);
   
-  // Synced state for Slider and Input
+  // Cast data to any for easier access in this specific component, 
+  // then handle checks manually to avoid TS errors
+  const data = selectedNode?.data as any;
+  
   const [cpuValue, setCpuValue] = useState<number>(0);
 
   useEffect(() => {
-    if (selectedNode?.data?.cpu !== undefined) {
-      setCpuValue(selectedNode.data.cpu);
+    if (data?.cpu !== undefined) {
+      setCpuValue(Number(data.cpu));
     }
-  }, [selectedNodeId, selectedNode]);
+  }, [selectedNodeId, data?.cpu]);
 
-  if (!selectedNode) {
+  if (!selectedNode || !data) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center text-muted-foreground">
         <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-4">
@@ -42,8 +45,8 @@ export function NodeInspector() {
     );
   }
 
-  const { data } = selectedNode;
-  const statusColors = {
+  const status = data.status || 'healthy';
+  const statusColors: Record<string, string> = {
     healthy: 'bg-green-500/10 text-green-500 border-green-500/20',
     degraded: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
     down: 'bg-red-500/10 text-red-500 border-red-500/20',
@@ -54,8 +57,8 @@ export function NodeInspector() {
       <div className="p-4 border-b flex items-center justify-between">
         <div className="space-y-1">
           <CardTitle className="text-lg">{data.label || 'Service Node'}</CardTitle>
-          <Badge variant="outline" className={statusColors[data.status as keyof typeof statusColors]}>
-            {data.status.toUpperCase()}
+          <Badge variant="outline" className={statusColors[status] || statusColors.healthy}>
+            {String(status).toUpperCase()}
           </Badge>
         </div>
         <Button variant="ghost" size="icon" onClick={() => setSelectedNodeId(null)}>
@@ -77,7 +80,7 @@ export function NodeInspector() {
               <Label htmlFor="node-name">Node Name</Label>
               <Input 
                 id="node-name" 
-                value={data.label} 
+                value={data.label || ''} 
                 onChange={(e) => updateNodeData(selectedNode.id, { label: e.target.value })}
               />
             </div>
